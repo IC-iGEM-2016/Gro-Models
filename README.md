@@ -8,3 +8,14 @@ Gro, developed by the Klavins group at the University of Washington, simulates t
 The model we have produced is a high level model, designed to visually communicate the behaviour of our system at a population level. Due to a lack of computational power, the following simulations, unlike the Matlab models, do not include typical behaviour such as competition for resources, assuming infinite amount of resource and space for the cell populations. However all models by definition include diffusion rates so that we can explore this effect of population level behaviour on our circuit. The following simulations took an average of 2 days to run. 
 
 To use the code download the gro programme from https://github.com/klavinslab/gro. We would like to thank Eric Klavins and James Macdonald for their help.
+
+
+
+
+Final_Model.gro : this programme allows for stochastic modelling of our circuitry with paramaters found from either literature or estamated calculations. The programme is designed to run using the srand(-1) function allowing for a different run dependent on the time the run has started, therefore the programme was run 30 times in parallel.
+
+financebanks.gro : this programme allows for stochastic modelling of a "financial model" where 3 banks are all dependent on one another using our system. As one bank crashes at 180 minutes, due to the nature of the circuit the other two populations survive. The programme is designed to run using the srand(-1) function allowing for a different run dependent on the time the run has started, therefore the programme was run 30 times in parallel.
+
+financebankscontrol.gro : this programme allows for stochastic modelling of a "financial control model" where 3 banks are all dependent on one another via an auxotrophic system. As one bank crashes at 180 minutes, due to the nature of the auxotrophic control the population dependent on the crashed population also dies and hence the third dies too. The programme is designed to run using the srand(-1) function allowing for a different run dependent on the time the run has started, therefore the programme was run 30 times in parallel.
+
+Without Circuit : This programme allows for stochastic modelling of a control to show growth of two populations without any circuitry implemented. The programme is designed to run using the srand(-1) function allowing for a different run dependent on the time the run has started, therefore the programme was run 30 times in parallel.
