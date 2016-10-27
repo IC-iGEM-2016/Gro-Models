@@ -9,10 +9,7 @@ The model we have produced is a high level model, designed to visually communica
 
 To use the code download the gro programme from https://github.com/klavinslab/gro. We would like to thank Eric Klavins and James Macdonald for their help.
 
-
-
-
-Final_Model.gro : this programme allows for stochastic modelling of our circuitry with paramaters found from either literature or estamated calculations. The programme is designed to run using the srand(-1) function allowing for a different run dependent on the time the run has started, therefore the programme was run 30 times in parallel.
+# Final_Model.gro : this programme allows for stochastic modelling of our circuitry with paramaters found from either literature or estamated calculations. The programme is designed to run using the srand(-1) function allowing for a different run dependent on the time the run has started, therefore the programme was run 30 times in parallel.
 
 financebanks.gro : this programme allows for stochastic modelling of a "financial model" where 3 banks are all dependent on one another using our system. As one bank crashes at 180 minutes, due to the nature of the circuit the other two populations survive. The programme is designed to run using the srand(-1) function allowing for a different run dependent on the time the run has started, therefore the programme was run 30 times in parallel.
 
