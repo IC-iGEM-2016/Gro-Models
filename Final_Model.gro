@@ -1,0 +1,369 @@
+include gro
+
+//The following programme allows for stochastic modelling of our circuitry with paramaters found from either literature or estamated calculations. The programme is designed to run using the srand(-1) function allowing for a different run dependent on the time the run has started, therefore the programme was run 30 times in parallel. To use the code download the gro programme from https://github.com/klavinslab/gro. We would like to thank Eric Klavins and James Macdonald for their help. 
+    
+    
+srand(-1);
+    
+///////////////////////////////////////////////// Initialisation //////////////////////////////////////////////////
+
+set ( "dt", 0.1 ); // define the time step
+set( "population_max" , 1000000);
+
+rhl := signal(0.003, 0.2); // signal(diffusion rate, degredation rate)
+cin := signal(0.003, 0.2);
+num_cells := 3; // number of cells in population 1 in yellow                    // change this to appropriate numbers
+num_cells2 := 5; // number of cells in population 2 in green
+C4 := 3;
+C14 := 5;
+
+fp := fopen(ARGV[2], "w" );
+
+///////////////////////////////////////////////////// population 1 - cin  ////////////////////////////////////////////////////////
+
+program cell1() := {
+
+//Initialise                                             // REMEMBER TO INCLUDE DEGRADATIONS
+C4R_1 := 0;
+C14R_1 := 0;
+C4C4R_1 := 0;
+C14C14R_1 := 0;
+rfp := 0;
+a := [T1 := 0];
+b := [T1 := 0];
+k := 0;
+STAR_1 := 0;
+ANTISTAR_1 := 0;
+STARANTISTAR_1 := 0;
+AD1_1 := 0;
+STARAD1_1 := 0; 
+mGP04_1 := 0;
+GP04_1 := 0;
+FtsZ_1 := 1000; 
+GP04FtsZ_1 := 0; 
+    
+///// Count total number of cells across population 1 /////
+daughter : { num_cells := num_cells + 1 }
+daughter : { C4 := C4 + 100 }
+
+///// Production of quorum sensing signal and yellow reporter molecule  /////
+  true :{                                          //rate? WHAT IS THIS
+    emit_signal (cin, 322),                                // emit at molecules per second?
+    rfp := 100*(volume),
+    AD1_1 := 100
+}
+
+just_divided : {
+    FtsZ_1 := 1000;
+}
+
+/// Quorum Module ///
+
+rate (2.99) : { C4R_1 := C4R_1 + 1 }; 
+rate (2.99) : { C14R_1 := C14R_1 + 1 }; 
+    
+    // Production of C4C4R //
+    
+rate ( 404 * C4 * C4R_1 ) : {
+    C4C4R_1 := C4C4R_1 + C4,
+    C4R_1 := C4R_1 - 1,
+}
+
+    // Production of C14C14R //
+rate ( 404 * C14 * C14R_1 ) : { 
+    C14C14R_1 := C14C14R_1 + C14, 
+    C14R_1 := C14R_1 - 1
+}
+
+    //Degradations of Quorum Molecules//
+rate ( 0.002 * C4R_1 ) : {C4R_1 := C4R_1 - 1};              //C4R Degradation
+rate ( 0.002 * C14R_1 ) : {C14R_1 := C14R_1 - 1};           //C14R Degradation
+
+    
+    //Induced production of STAR//
+rate ( 18.75 * C4C4R_1 ) : { 
+  STAR_1 := STAR_1 + C4C4R_1;
+  C4C4R_1 := C4C4R_1 - 1;
+};                                                                 
+
+    //Induced production of ANTISTAR//
+rate ( 18.75 * C14C14R_1 ) : { 
+    ANTISTAR_1 := ANTISTAR_1 + C14C14R_1;
+    C14C14R_1 := C14C14R_1 - 1;
+};  
+    
+ //STAR:ANTISTAR complex formation//
+rate (62 * STAR_1 * ANTISTAR_1) : {
+    STAR_1 := STAR_1 - 1,
+    ANTISTAR_1 := ANTISTAR_1 - 1,
+    STARANTISTAR_1 := STARANTISTAR_1 + STAR_1 + ANTISTAR_1
+};
+
+    //STAR:ANTISTAR complex dissociation//
+rate (2 * STARANTISTAR_1) : {
+    STAR_1 := STAR_1 + STARANTISTAR_1,
+    ANTISTAR_1 := ANTISTAR_1 + STARANTISTAR_1,
+    STARANTISTAR_1 := STARANTISTAR_1 - 1
+};
+
+    //STAR:AD1 complex formation//
+STAR_1 > ANTISTAR_1 & rate (2 * STAR_1 * AD1_1) :{
+    STARAD1_1 := STARAD1_1 + STAR_1 + AD1_1,
+    STAR_1 := STAR_1 - 1,
+    AD1_1 := AD1_1 - 1
+};
+
+    //STAR:AD1 complex dissociation//
+rate (2 * STARAD1_1) : {
+    STARAD1_1 := STARAD1_1 - 1,
+    STAR_1 := STAR_1 + STARAD1_1,
+    AD1_1 := AD1_1 + STARAD1_1
+};
+    
+    //Degradation of STAR molecules//
+rate ( 0.139 * STAR_1 ) : {STAR_1 := STAR_1 - 1};                      //STAR Degradation
+rate ( 0.139 * ANTISTAR_1 ) : {ANTISTAR_1 := ANTISTAR_1 - 1};          //ANTISTAR Degradation
+    
+    
+/// GP 0.4 Module ///
+
+     //Transcription of mGP0.4 after STAR induction//
+rate (8.08 * STARAD1_1) : {
+   mGP04_1 := mGP04_1 + STARAD1_1,
+   STARAD1_1 := STARAD1_1 - 1
+};                                                              
+
+    //Translation of Gp0.4//
+rate (13.86 * mGP04_1) : {
+    GP04_1 := GP04_1 + mGP04_1,
+    mGP04_1 := mGP04_1 - 1
+};
+
+    //Gp0.4:FtsZ complex formation//
+rate (9440 * GP04_1 * FtsZ_1) : {
+    GP04FtsZ_1 := GP04FtsZ_1 + GP04_1 + FtsZ_1,
+    FtsZ_1 := FtsZ_1 - 1,
+    GP04_1 := GP04_1 - 1
+};
+    
+    //Gp0.4 complex dissociation//
+rate (30 * GP04FtsZ_1) : {
+    GP04FtsZ_1 := GP04FtsZ_1 - 1,
+    FtsZ_1 := FtsZ_1 + GP04FtsZ_1,
+    GP04_1 := GP04_1 + GP04FtsZ_1
+};  
+    
+    //Degradation of GP 0.4 Molecules//
+rate ( 0.139 * mGP04_1 ) : {mGP04_1 := mGP04_1 - 1};              //mGP0.4 Degradation
+rate ( 1.39*10^(-5) * GP04_1 ) : {GP04_1 := GP04_1 - 1};          //GP0.4 Degradation
+rate ( 1.39*10^(-5) * FtsZ_1 ) : {FtsZ_1 := FtsZ_1 - 1};          //FtsZ Degradation
+
+true :{
+a.T1 := a.T1 + dt,
+b.T1 := b.T1 + dt,
+}
+
+
+a.T1 >= 1 :{
+FtsZ_1 := if num_cells < num_cells2 then 1000 else FtsZ_1 end,
+k := if FtsZ_1 < 950 then 0 else 1 end,
+    set ("ecoli_growth_rate", 0.03*k),
+a.T1 := 0,
+}
+
+};
+
+///////////////////////////////////////////////////// population 2 - rhl ////////////////////////////////////////////////////////
+
+program cell2() := {
+
+//Initialise                                             // REMEMBER TO INCLUDE DEGRADATIONS
+C4R_2 := 0;
+C14R_2 :=  0;
+C4C4R_2 := 0;
+C14C14R_2 := 0;
+a := [T2 := 0];  
+b := [FtsZ_2 := 1000, T2 := 0];
+//FtsZ_2 := 1000;
+STAR_2 := 0;
+ANTISTAR_2 := 0;
+STARANTISTAR_2 := 0;
+AD1_2 := 100;
+STARAD1_2 := 0; 
+mGP04_2 := 0;
+GP04_2 := 0;
+FtsZ_2 := 1000; 
+GP04FtsZ_2 := 0; 
+    
+cfp := 0;
+k2 := 0;
+
+///// Count total number of cells across population 1 /////
+daughter : { num_cells2 := num_cells2 + 1 }
+daughter : { C14 := C14 + 100 }
+
+
+just_divided : {
+    FtsZ_2 := 1000
+}
+
+///// Production of quorum sensing signal and yellow reporter molecule  /////
+  true :{
+    emit_signal (rhl, 20),
+    cfp := 100*(volume),
+    AD1_2 := 100
+}
+
+/// Quorum Module ///
+
+rate (2.99) : { C4R_2 := C4R_2 + 1 }; 
+rate (2.99) : { C14R_2 := C14R_2 + 1 };     
+    
+    // Production of C4C4R //
+rate (  404 * C4 * C4R_2 ) : { 
+    C4C4R_2 := C4C4R_2 + C4, 
+    C4R_2 := C4R_2 - 1
+}
+
+    // Production of C14C14R //
+rate ( 404 * C14 * C14R_2 ) : { 
+    C14C14R_2 := C14C14R_2 + C14,
+    C14R_2 := C14R_2 - 1
+ }
+
+    //Degradations of Quorum Molecules//
+
+rate ( 0.002 * C4R_2 ) : {C4R_2 := C4R_2 - 1};              //C4R Degradation
+rate ( 0.002 * C14R_2 ) : {C14R_2 := C14R_2 - 1};           //C14R Degradation
+
+    
+    //Induced production of STAR//
+rate ( 18.75 * C14C14R_2 ) : { 
+  STAR_2 := STAR_2 + C14C14R_2,
+  C14C14R_2 := C14C14R_2 - 1,
+};                                                                 
+
+    //Induced production of ANTISTAR//
+rate ( 18.75 * C4C4R_2 ) : { 
+    ANTISTAR_2 := ANTISTAR_2 + C4C4R_2,
+    C4C4R_2 := C4C4R_2 - 1,
+};
+    
+    //STAR:ANTISTAR complex formation//
+rate (62 * STAR_2 * ANTISTAR_2) : {
+    STAR_2 := STAR_2 - 1,
+    ANTISTAR_2 := ANTISTAR_2 - 1,
+    STARANTISTAR_2 := STARANTISTAR_2 + STAR_2 + ANTISTAR_2
+};
+
+    //STAR:ANTISTAR complex dissociation//
+rate (2 * STARANTISTAR_2) : {
+    STAR_2 := STAR_2 + STARANTISTAR_2,
+    ANTISTAR_2 := ANTISTAR_2 + STARANTISTAR_2,
+    STARANTISTAR_2 := STARANTISTAR_2 - 1
+};
+
+    //STAR:AD1 complex formation//
+STAR_2 > ANTISTAR_2 & rate (62 * STAR_2 * AD1_2):{
+    STARAD1_2 := STARAD1_2 + STAR_2 + AD1_2,
+    STAR_2 := STAR_2 - 1,
+    AD1_2 := AD1_2 - 1
+};
+
+    //STAR:AD1 complex dissociation//
+rate (2 * STARAD1_2) : {
+    STARAD1_2 := STARAD1_2 - 1,
+    STAR_2 := STAR_2 + STARAD1_2,
+    AD1_2 := AD1_2 + STARAD1_2
+};
+
+    //Degradation of STAR molecules//
+rate ( 0.139 * STAR_2 ) : {STAR_2 := STAR_2 - 1};                      //STAR Degradation
+rate ( 0.139 * ANTISTAR_2 ) : {ANTISTAR_2 := ANTISTAR_2 - 1};          //ANTISTAR Degradation
+    
+/// GP 0.4 Module ///           
+
+     //Transcription of mGP0.4 after STAR induction//
+rate (8.08 * STARAD1_2) : {
+   mGP04_2 := mGP04_2 + STARAD1_2,
+   STARAD1_2 := STARAD1_2 - 1
+};                                                              
+
+    //Translation of Gp0.4//
+rate (13.86 * mGP04_2) : {
+    GP04_2 := GP04_2 + mGP04_2,
+    mGP04_2 := mGP04_2 - 1
+};
+
+    //Gp0.4:FtsZ complex formation//
+rate (9440 * GP04_2 * FtsZ_2) : {
+    GP04FtsZ_2 := GP04FtsZ_2 + GP04_2 + FtsZ_2,
+    FtsZ_2 := FtsZ_2 - 1,
+    GP04_2 := GP04_2 - 1
+};
+    
+    //Gp0.4 complex dissociation//
+rate (30 * GP04FtsZ_2) : {
+    GP04FtsZ_2 := GP04FtsZ_2 - 1,
+    FtsZ_2 := FtsZ_2 + GP04FtsZ_2,
+    GP04_2 := GP04_2 + GP04FtsZ_2
+};  
+    
+    //Degradation of GP 0.4 Molecules//
+rate ( 0.139 * mGP04_2 ) : {mGP04_2 := mGP04_2 - 1};              //mGP0.4 Degradation
+rate ( 1.39*10^(-5) * GP04_2 ) : {GP04_2 := GP04_2 - 1};          //GP0.4 Degradation
+rate ( 1.39*10^(-5) * FtsZ_2 ) : {FtsZ_2 := FtsZ_2 - 1};          //FtsZ Degradation
+    
+true :{
+a.T2 := a.T2 + dt,
+b.T2 := b.T2 + dt,
+}
+
+a.T2 >= 1 :{
+FtsZ_2 := if num_cells2 < num_cells then 1000 else FtsZ_2 end,
+k2 := if FtsZ_2 < 950 then 0 else 1 end,
+    set ("ecoli_growth_rate", 0.03*k2),
+a.T2 := 0,
+}
+
+
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+program main() := {
+
+///// Initialize parameters /////
+td := 0;
+tx := 0;
+ratio := 0;
+stats := [ num := 0, mean := 0, std := 0, n := 0, tm := 0, t := 0]; //for data storage
+
+   ///// Execute step with dt /////
+  true : {
+  stats.t := stats.t + dt,
+  td := td + dt,
+  tx := tx + dt,
+  stats.tm := stats.tm + dt,
+  }
+
+///// Display Ratio of the 2 populations at the bottom left corner of the window /////
+  stats.t > 1 : {
+    clear_messages(0),
+    ratio := (num_cells + 0.00001)/(num_cells2 + 0.00001),
+    //message ( 0, " a: " <> tostring(num_cells) <> " b: " <> tostring(num_cells2) <> " = " <> tostring(ratio) <> "\n"),
+    fprint ( fp, "Red/Blue = ", num_cells, "/", num_cells2, " = ", ratio , "\n"  ),
+    stats.t := 0,
+  }
+
+    ecoli ( [x := 0, y := 0], program cell2() );
+    ecoli ( [x := -115, y := -35], program cell2() );
+    ecoli ( [x := -105, y := -35], program cell2() );
+    ecoli ( [x := -95, y := -35], program cell2() );
+    ecoli ( [x := -85, y := -35], program cell2() );
+
+    ecoli ( [x := 0, y := 0], program cell1() );
+    ecoli ( [x := -15, y := -10], program cell1() );
+    ecoli ( [x := -45, y := 0], program cell1() );
+}

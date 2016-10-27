@@ -1,0 +1,82 @@
+include gro
+
+//The following programme allows for stochastic modelling of a control to show growth of two populations without any circuitry implemented. The programme is designed to run using the srand(-1) function allowing for a different run dependent on the time the run has started, therefore the programme was run 30 times in parallel. To use the code download the gro programme from https://github.com/klavinslab/gro. We would like to thank Eric Klavins and James Macdonald for their help.       
+    
+srand(-1);
+    
+///////////////////////////////////////////////// Initialisation //////////////////////////////////////////////////
+
+set ( "dt", 0.1 ); // define the time step
+set( "population_max" , 1000000);
+
+rhl := signal(0.003, 0.2); // signal(diffusion rate, degredation rate)
+cin := signal(0.003, 0.2);
+num_cells := 3; // number of cells in population 1 in yellow                    // change this to appropriate numbers
+num_cells2 := 5; // number of cells in population 2 in green
+C4 := 3;
+C14 := 5;
+
+fp := fopen(ARGV[2], "w" );
+
+///////////////////////////////////////////////////// population 1 - cin  ////////////////////////////////////////////////////////
+
+program cell1() := {
+
+  true :{
+    emit_signal (rhl, 20),
+    cfp := 100*(volume)
+}
+
+};
+
+///////////////////////////////////////////////////// population 2 - rhl ////////////////////////////////////////////////////////
+
+program cell2() := {
+
+
+  true :{
+    emit_signal (rhl, 20),
+    cfp := 100*(volume)
+}
+
+
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+program main() := {
+
+///// Initialize parameters /////
+td := 0;
+tx := 0;
+ratio := 0;
+stats := [ num := 0, mean := 0, std := 0, n := 0, tm := 0, t := 0]; //for data storage
+
+   ///// Execute step with dt /////
+  true : {
+  stats.t := stats.t + dt,
+  td := td + dt,
+  tx := tx + dt,
+  stats.tm := stats.tm + dt,
+  }
+
+///// Display Ratio of the 2 populations at the bottom left corner of the window /////
+  stats.t > 1 : {
+    clear_messages(0),
+    ratio := (num_cells + 0.00001)/(num_cells2 + 0.00001),
+    //message ( 0, " a: " <> tostring(num_cells) <> " b: " <> tostring(num_cells2) <> " = " <> tostring(ratio) <> "\n"),
+    fprint ( fp, "Red/Blue = ", num_cells, "/", num_cells2, " = ", ratio , "\n"  ),
+    stats.t := 0,
+  }
+
+    ecoli ( [x := 0, y := 0], program cell2() );
+    ecoli ( [x := -115, y := -35], program cell2() );
+    ecoli ( [x := -105, y := -35], program cell2() );
+    ecoli ( [x := -95, y := -35], program cell2() );
+    ecoli ( [x := -85, y := -35], program cell2() );
+
+    ecoli ( [x := 0, y := 0], program cell1() );
+    ecoli ( [x := -15, y := -10], program cell1() );
+    ecoli ( [x := -45, y := 0], program cell1() );
+}
